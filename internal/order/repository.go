@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tanmaygupta069/order-service/pkg/mysql"
-	"github.com/tanmaygupta069/order-service/pkg/redis"
+	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
+	Redis "github.com/tanmaygupta069/order-service-go/pkg/redis"
 	"gorm.io/gorm"
 	// "gorm.io/gorm"
 )

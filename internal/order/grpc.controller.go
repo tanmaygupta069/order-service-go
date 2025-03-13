@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	pb "github.com/tanmaygupta069/order-service/generated"
+	pb "github.com/tanmaygupta069/order-service-go/generated"
 	"google.golang.org/grpc/metadata"
 )
 

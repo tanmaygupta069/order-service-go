@@ -5,12 +5,13 @@ import (
 	"log"
 	"net"
 
-	"github.com/tanmaygupta069/order-service/config"
-	pb "github.com/tanmaygupta069/order-service/generated"
-	"github.com/tanmaygupta069/order-service/internal/order"
-	// "github.com/tanmaygupta069/order-service/pkg/mysql"
+	"github.com/tanmaygupta069/order-service-go/config"
+	pb "github.com/tanmaygupta069/order-service-go/generated"
+	"github.com/tanmaygupta069/order-service-go/internal/order"
 
-	// Redis "github.com/tanmaygupta069/order-service/pkg/redis"
+	// "github.com/tanmaygupta069/order-service-go/pkg/mysql"
+
+	// Redis "github.com/tanmaygupta069/order-service-go/pkg/redis"
 	"google.golang.org/grpc"
 
 	// "google.golang.org/grpc/credentials"
@@ -29,13 +30,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load TLS keys: %v", err)
 	}
-	listener, err := net.Listen("tcp4",":"+cfg.GrpcConfig.Port)
+	listener, err := net.Listen("tcp4", ":"+cfg.GrpcConfig.Port)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	_, er := credentials.NewServerTLSFromFile("cert.pem", "key.pem")
-	if er!=nil{
+	if er != nil {
 		fmt.Printf("error in parsing certificate")
 	}
 	grpcServer := grpc.NewServer()

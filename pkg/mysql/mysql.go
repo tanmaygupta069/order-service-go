@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/tanmaygupta069/order-service/config"
+	"github.com/tanmaygupta069/order-service-go/config"
 )
 
 var db *gorm.DB
@@ -18,7 +18,7 @@ var once sync.Once
 type SqlInterface interface {
 	Insert(order *Orders) error
 	Delete(OrderId string) error
-	GetOne(key string,value string) (*Orders, error)
+	GetOne(key string, value string) (*Orders, error)
 	GetAll(userId string) ([]Orders, error)
 }
 
@@ -28,7 +28,7 @@ type SqlServiceImplementation struct {
 
 func NewSqlClient() *SqlServiceImplementation {
 	return &SqlServiceImplementation{
-		db:GetSqlClient(),
+		db: GetSqlClient(),
 	}
 }
 
@@ -71,9 +71,9 @@ func GetSqlClient() *gorm.DB {
 	return db
 }
 
-func (s *SqlServiceImplementation) GetOne(key string,value string) (*Orders, error) {
+func (s *SqlServiceImplementation) GetOne(key string, value string) (*Orders, error) {
 	var order Orders
-	err := db.Where(fmt.Sprintf("%s = ?", value),key).First(&order).Error
+	err := db.Where(fmt.Sprintf("%s = ?", value), key).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (s *SqlServiceImplementation) GetOne(key string,value string) (*Orders, err
 
 func (s *SqlServiceImplementation) GetAll(userId string) ([]Orders, error) {
 	var orders []Orders
-	if err := db.Where("user_id = ?",userId).Find(&orders).Error; err != nil {
+	if err := db.Where("user_id = ?", userId).Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil
@@ -93,5 +93,5 @@ func (s *SqlServiceImplementation) Insert(order *Orders) error {
 }
 
 func (s *SqlServiceImplementation) Delete(OrderId string) error {
-	return db.Delete(&Orders{}, "order_id = ?",OrderId).Error
+	return db.Delete(&Orders{}, "order_id = ?", OrderId).Error
 }

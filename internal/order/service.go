@@ -10,20 +10,20 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/tanmaygupta069/order-service/config"
-	"github.com/tanmaygupta069/order-service/pkg/mysql"
+	"github.com/tanmaygupta069/order-service-go/config"
+	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
 )
 
 var cfg, _ = config.GetConfig()
 
 type OrderService interface {
 	PlaceOrder(order *Orders) (*Orders, error)
-	DeleteOrder(orderId string)(*mysql.Orders,error) 
+	DeleteOrder(orderId string) (*mysql.Orders, error)
 	GenerateOrderId() string
 	ExtractUserIDFromToken(tokenString string) (string, error)
 	GetStockPrice(symbol string) (float64, error)
 	IDORCheck(userid, orderId string) bool
-	GetOrderHistory(userId string)([]*mysql.Orders,error)
+	GetOrderHistory(userId string) ([]*mysql.Orders, error)
 }
 
 type OrderServiceImp struct {
@@ -98,15 +98,15 @@ func (r *OrderServiceImp) GetStockPrice(symbol string) (float64, error) {
 	return simulatedPrice, nil
 }
 
-func (r *OrderServiceImp) DeleteOrder(orderId string) (*mysql.Orders,error) {
+func (r *OrderServiceImp) DeleteOrder(orderId string) (*mysql.Orders, error) {
 	order, err := r.repo.GetOrder(orderId)
 	if err != nil {
-		return nil,fmt.Errorf("error getting order : %v",err)
+		return nil, fmt.Errorf("error getting order : %v", err)
 	}
-	if err = r.repo.DeleteOrder(orderId);err!=nil{
-		return nil,fmt.Errorf("error deleting order : %v",err)
+	if err = r.repo.DeleteOrder(orderId); err != nil {
+		return nil, fmt.Errorf("error deleting order : %v", err)
 	}
-	return order,nil
+	return order, nil
 }
 
 func (r *OrderServiceImp) IDORCheck(userid, orderId string) bool {
@@ -120,6 +120,6 @@ func (r *OrderServiceImp) IDORCheck(userid, orderId string) bool {
 	return true
 }
 
-func (r *OrderServiceImp)GetOrderHistory(userId string)([]*mysql.Orders,error){
+func (r *OrderServiceImp) GetOrderHistory(userId string) ([]*mysql.Orders, error) {
 	return r.repo.GetOrders(userId)
 }

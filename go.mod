@@ -1,4 +1,4 @@
-module github.com/tanmaygupta069/order-service
+module github.com/tanmaygupta069/order-service-go
 
 go 1.24.1
 
