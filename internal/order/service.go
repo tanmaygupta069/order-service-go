@@ -8,13 +8,10 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/tanmaygupta069/order-service-go/config"
 	"github.com/tanmaygupta069/order-service-go/internal/holding"
 	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
-	"google.golang.org/grpc/metadata"
 )
 
 var cfg, _ = config.GetConfig()
@@ -23,14 +20,13 @@ type OrderService interface {
 	PlaceOrder(order *Orders) (*Orders, error)
 	DeleteOrder(orderId string) (*mysql.Orders, error)
 	GenerateOrderId() string
-	ExtractUserIDFromToken(tokenString string) (string, error)
 	GetStockPrice(symbol string) (float64, error)
 	IDORCheck(userid, orderId string) (bool, error)
 	GetOrderHistory(userId string) ([]*mysql.Orders, error)
-	GetTokenFromMetadata(md metadata.MD) (string, error)
 	CancelOrder(orderId string) (*mysql.Orders, error)
 	CompleteRandomOrders() error
 	CompleteOrder(orderId string)(*mysql.Orders,error)
+	CheckStockQuantity(userId string,symbol string,quantity int32)(bool,error)
 }
 
 type OrderServiceImp struct {
@@ -52,31 +48,6 @@ func (r *OrderServiceImp) PlaceOrder(order *Orders) (*Orders, error) {
 func (r *OrderServiceImp) GenerateOrderId() string {
 	orderID := uuid.New()
 	return orderID.String()
-}
-
-func (r *OrderServiceImp) ExtractUserIDFromToken(tokenString string) (string, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Make sure the token signing method is as expected
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(cfg.JwtSecret), nil
-	})
-
-	if err != nil {
-		return "", fmt.Errorf("error parsing token: %v", err)
-	}
-
-	// Extract claims
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		email, ok := claims["email"].(string)
-		if !ok {
-			return "", fmt.Errorf("email not found in token")
-		}
-		return email, nil
-	}
-
-	return "", fmt.Errorf("invalid token")
 }
 
 func (r *OrderServiceImp) GetStockPrice(symbol string) (float64, error) {
@@ -137,14 +108,6 @@ func (r *OrderServiceImp) GetOrderHistory(userId string) ([]*mysql.Orders, error
 	return r.repo.GetOrders(userId)
 }
 
-func (r *OrderServiceImp) GetTokenFromMetadata(md metadata.MD) (string, error) {
-	token := md.Get("Authorization")
-	if len(token) == 0 {
-		return "", fmt.Errorf("no token found")
-	}
-	return token[0], nil
-}
-
 func (r *OrderServiceImp) CancelOrder(orderId string) (*mysql.Orders, error) {
 	order, err := r.repo.GetOrder(orderId)
 	if err != nil {
@@ -176,9 +139,40 @@ func (r *OrderServiceImp) CompleteRandomOrders() error {
 }
 
 func (r *OrderServiceImp)CompleteOrder(orderId string)(*mysql.Orders,error){
+	if r.repo == nil {
+		return nil, fmt.Errorf("repo is nil")
+	}
+	if r.holdingService == nil {
+		return nil, fmt.Errorf("holdingService is nil")
+	}
+
 	order, err := r.repo.GetOrder(orderId)
 	if err != nil {
 		return nil, err
 	}
-	return r.repo.UpdateOrderStatus(order, "completed")
+	updatedorder,er:=r.repo.UpdateOrderStatus(order, "completed")
+	if er!=nil{
+		return nil,er
+	}
+	if order == nil{
+		return nil,fmt.Errorf("order nil in complete order")
+	}
+	holding:=&mysql.Holdings{
+		UserId: updatedorder.UserId,
+		Symbol: updatedorder.Symbol,
+		Quantity: updatedorder.Quantity,
+		TotalPrice: updatedorder.TotalPrice,
+	}
+	return order,r.holdingService.UpdateHoldings(holding,updatedorder.OrderType)
+}
+
+func (r *OrderServiceImp)CheckStockQuantity(userId string,symbol string,quantity int32)(bool,error){
+	holding,err:=r.holdingService.GetHolding(userId,symbol)
+	if err!=nil{
+		return false,err
+	}
+	if holding.Quantity < quantity{
+		return false,nil
+	}
+	return true,nil
 }

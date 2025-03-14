@@ -46,10 +46,10 @@ func InitializeSqlClient() {
 			fmt.Println("Failed to ping DB:", err)
 			return
 		}
-		// if err := d.AutoMigrate(&Orders{}); err != nil {
-		// 	fmt.Println("Failed to auto-migrate:", err)
-		// 	return
-		// }
+		if err := d.AutoMigrate(&Orders{}, &Holdings{}); err != nil {
+			fmt.Println("Failed to auto-migrate:", err)
+			return
+		}
 
 		fmt.Println("DB connection successful")
 		db = d

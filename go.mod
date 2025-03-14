@@ -1,5 +1,7 @@
 module github.com/tanmaygupta069/order-service-go
 
+replace github.com/tanmaygupta069/order-service-go/generated => ./generated
+
 go 1.24.1
 
 require (

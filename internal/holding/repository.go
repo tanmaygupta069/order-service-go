@@ -10,8 +10,9 @@ import (
 
 type HoldingRepository interface {
 	UpdateHoldings(holding *mysql.Holdings) error
-	GetHoldings(holding *mysql.Holdings)(*mysql.Holdings,error)
+	GetHolding(holding *mysql.Holdings)(*mysql.Holdings,error)
 	InsertHolding(holding *mysql.Holdings)(error)
+	GetHoldings(holding *mysql.Holdings)([]*mysql.Holdings,error)
 }
 
 type HoldingRepositoryImp struct{
@@ -30,7 +31,7 @@ func (db *HoldingRepositoryImp)UpdateHoldings(holding *mysql.Holdings)error{
 	return db.mysql.Update(holding)
 }
 
-func (db *HoldingRepositoryImp)GetHoldings(holding *mysql.Holdings)(*mysql.Holdings,error){
+func (db *HoldingRepositoryImp)GetHolding(holding *mysql.Holdings)(*mysql.Holdings,error){
 	existingHolding, err := db.mysql.GetOne(map[string]interface{}{
 		"symbol":holding.Symbol,
 		"user_id":holding.UserId,
@@ -45,4 +46,20 @@ func (db *HoldingRepositoryImp)GetHoldings(holding *mysql.Holdings)(*mysql.Holdi
 
 func (db *HoldingRepositoryImp)InsertHolding(holding *mysql.Holdings)(error){
 	return db.mysql.Insert(holding)
+}
+
+func (db *HoldingRepositoryImp)GetHoldings(holding *mysql.Holdings)([]*mysql.Holdings,error){
+	holdings,err:=db.mysql.GetAll(map[string]interface{}{
+		"user_id":holding.UserId,
+	})
+	if err!=nil{
+		return nil,err
+	}
+	result := make([]*mysql.Holdings, len(holdings))
+	for i := range holdings {
+		result[i] = &holdings[i]
+	}
+
+	return result,nil
+
 }

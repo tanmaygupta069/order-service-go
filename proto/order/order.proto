@@ -2,14 +2,16 @@ syntax = "proto3";
 
 package order;
 
-option go_package = "./";
+import "common/common.proto";
+
+option go_package = "github.com/tanmaygupta069/order-service-go/generated/order";
 
 service OrderService {
     rpc PlaceOrder (OrderRequest) returns (OrderResponse);
     rpc CancelOrder (CancelOrderRequest) returns (CancelOrderResponse);
     rpc GetOrderHistory (OrderHistoryRequest) returns (OrderHistoryResponse);
-    rpc GetCurrentPrice(GetCurrentPriceRequest)returns (GetCurrentPriceResponse);
-    rpc CompleteOrder(CompleteOrderRequest)returns(CompleteOrderResponse);
+    rpc GetCurrentPrice(GetCurrentPriceRequest) returns (GetCurrentPriceResponse);
+    rpc CompleteOrder(CompleteOrderRequest) returns (CompleteOrderResponse);
 }
 
 message Order {
@@ -30,7 +32,7 @@ message OrderRequest{
 
 message OrderResponse{
     Order order = 1;
-    Response response = 2;
+    common.Response response = 2;
 }
 
 message CompleteOrderRequest{
@@ -38,7 +40,7 @@ message CompleteOrderRequest{
 }
 
 message CompleteOrderResponse{
-    Response response = 1;
+    common.Response response = 1;
     Order order = 2;
 }
 
@@ -48,7 +50,7 @@ message CancelOrderRequest{
 
 message CancelOrderResponse{
     Order order = 1;
-    Response response = 2;
+    common.Response response = 2;
 }
 
 message OrderHistoryRequest {
@@ -56,7 +58,7 @@ message OrderHistoryRequest {
 
 message OrderHistoryResponse{
     repeated Order orders = 1;
-    Response response = 2;
+    common.Response response = 2;
 }
 
 message GetCurrentPriceRequest{
@@ -65,10 +67,5 @@ message GetCurrentPriceRequest{
 
 message GetCurrentPriceResponse{
     double price = 1;
-    Response response = 2;
-}
-
-message Response {
-    int64 code = 1;
-    string message = 2;
+    common.Response response = 2;
 }

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package holding;
+
+import "common/common.proto";
+
+option go_package = "github.com/tanmaygupta069/order-service-go/generated/holding";
+
+service HoldingService {
+    rpc GetCurrentHoldings(CurrentHoldingsRequest) returns (CurrentHoldingsResponse);
+}
+
+message Holding {
+    string symbol = 1;
+    int32 quantity = 2;
+    double totalPrice = 3;
+}
+
+message CurrentHoldingsRequest {}
+
+message CurrentHoldingsResponse {
+    repeated Holding holdings = 1;
+    common.Response response = 2;
+}
