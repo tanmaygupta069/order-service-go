@@ -2,6 +2,7 @@ package main
 
 import (
 	// "fmt"
+	"fmt"
 	"log"
 	"net"
 
@@ -14,8 +15,7 @@ import (
 	// Redis "github.com/tanmaygupta069/order-service-go/pkg/redis"
 	"google.golang.org/grpc"
 
-	// "google.golang.org/grpc/credentials"
-	// "google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -35,13 +35,15 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	// _, er := credentials.NewServerTLSFromFile("cert.pem", "key.pem")
-	// if er != nil {
-	// 	fmt.Printf("error in parsing certificate")
-	// }
+	_, er := credentials.NewServerTLSFromFile("cert.pem", "key.pem")
+	if er != nil {
+		fmt.Printf("error in parsing certificate")
+	}
 	grpcServer := grpc.NewServer()
 	pb.RegisterOrderServiceServer(grpcServer, orderController)
 	reflection.Register(grpcServer)
+
+
 
 	log.Printf("gRPC server is running on port %s", cfg.GrpcConfig.Port)
 	if err := grpcServer.Serve(listener); err != nil {

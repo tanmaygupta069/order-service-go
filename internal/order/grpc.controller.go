@@ -15,6 +15,7 @@ type OrderController interface {
 	CancelOrder(ctx context.Context, req *pb.CancelOrderRequest) (*pb.CancelOrderResponse, error)
 	GetOrderHistory(ctx context.Context, req *pb.OrderHistoryRequest) (*pb.OrderHistoryResponse, error)
 	GetCurrentPrice(ctx context.Context, req *pb.GetCurrentPriceRequest) (*pb.GetCurrentPriceResponse, error)
+	CompleteOrder(ctx context.Context,req *pb.CompleteOrderRequest)(*pb.CompleteOrderResponse,error)
 	pb.UnimplementedOrderServiceServer
 }
 
@@ -157,6 +158,7 @@ func (s *OrderControllerImp) CancelOrder(ctx context.Context, req *pb.CancelOrde
 			},
 		}, nil
 	}
+	fmt.Print(req.OrderId)
 
 	if !IsValidUUID(req.OrderId) {
 		return &pb.CancelOrderResponse{
@@ -312,4 +314,50 @@ func (s *OrderControllerImp) GetCurrentPrice(ctx context.Context, req *pb.GetCur
 			Message: http.StatusText(http.StatusOK),
 		},
 	}, nil
+}
+
+func (s *OrderControllerImp)CompleteOrder(ctx context.Context,req *pb.CompleteOrderRequest)(*pb.CompleteOrderResponse,error){
+	if req.OrderId == "" {
+		return &pb.CompleteOrderResponse{
+			Response: &pb.Response{
+				Code:    http.StatusBadRequest,
+				Message: "orderId can't be empty",
+			},
+		}, nil
+	}
+
+	if !IsValidUUID(req.OrderId) {
+		return &pb.CompleteOrderResponse{
+			Response: &pb.Response{
+				Code:    http.StatusBadRequest,
+				Message: "not a valid format for orderId",
+			},
+		}, nil
+	}
+
+	order, err := s.service.CompleteOrder(req.OrderId)
+	if err != nil {
+		return &pb.CompleteOrderResponse{
+			Response: &pb.Response{
+				Code:    http.StatusInternalServerError,
+				Message: err.Error(),
+			},
+		}, nil
+	}
+
+	return &pb.CompleteOrderResponse{
+		Response: &pb.Response{
+			Code: http.StatusOK,
+			Message: "ordered completed",
+		},
+		Order: &pb.Order{
+			OrderId: order.OrderId,
+			Symbol: order.Symbol,
+			Quantity: order.Quantity,
+			PricePerStock: order.PricePerStock,
+			TotalPrice: order.TotalPrice,
+			OrderType: order.OrderType,
+			OrderStatus: order.OrderStatus,
+		},
+	},nil
 }

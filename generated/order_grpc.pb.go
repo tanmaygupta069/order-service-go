@@ -23,6 +23,7 @@ const (
 	OrderService_CancelOrder_FullMethodName     = "/order.OrderService/CancelOrder"
 	OrderService_GetOrderHistory_FullMethodName = "/order.OrderService/GetOrderHistory"
 	OrderService_GetCurrentPrice_FullMethodName = "/order.OrderService/GetCurrentPrice"
+	OrderService_CompleteOrder_FullMethodName   = "/order.OrderService/CompleteOrder"
 )
 
 // OrderServiceClient is the client API for OrderService service.
@@ -33,6 +34,7 @@ type OrderServiceClient interface {
 	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderResponse, error)
 	GetOrderHistory(ctx context.Context, in *OrderHistoryRequest, opts ...grpc.CallOption) (*OrderHistoryResponse, error)
 	GetCurrentPrice(ctx context.Context, in *GetCurrentPriceRequest, opts ...grpc.CallOption) (*GetCurrentPriceResponse, error)
+	CompleteOrder(ctx context.Context, in *CompleteOrderRequest, opts ...grpc.CallOption) (*CompleteOrderResponse, error)
 }
 
 type orderServiceClient struct {
@@ -83,6 +85,16 @@ func (c *orderServiceClient) GetCurrentPrice(ctx context.Context, in *GetCurrent
 	return out, nil
 }
 
+func (c *orderServiceClient) CompleteOrder(ctx context.Context, in *CompleteOrderRequest, opts ...grpc.CallOption) (*CompleteOrderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompleteOrderResponse)
+	err := c.cc.Invoke(ctx, OrderService_CompleteOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OrderServiceServer is the server API for OrderService service.
 // All implementations must embed UnimplementedOrderServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type OrderServiceServer interface {
 	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error)
 	GetOrderHistory(context.Context, *OrderHistoryRequest) (*OrderHistoryResponse, error)
 	GetCurrentPrice(context.Context, *GetCurrentPriceRequest) (*GetCurrentPriceResponse, error)
+	CompleteOrder(context.Context, *CompleteOrderRequest) (*CompleteOrderResponse, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedOrderServiceServer) GetOrderHistory(context.Context, *OrderHi
 }
 func (UnimplementedOrderServiceServer) GetCurrentPrice(context.Context, *GetCurrentPriceRequest) (*GetCurrentPriceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCurrentPrice not implemented")
+}
+func (UnimplementedOrderServiceServer) CompleteOrder(context.Context, *CompleteOrderRequest) (*CompleteOrderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CompleteOrder not implemented")
 }
 func (UnimplementedOrderServiceServer) mustEmbedUnimplementedOrderServiceServer() {}
 func (UnimplementedOrderServiceServer) testEmbeddedByValue()                      {}
@@ -206,6 +222,24 @@ func _OrderService_GetCurrentPrice_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrderService_CompleteOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).CompleteOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_CompleteOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).CompleteOrder(ctx, req.(*CompleteOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OrderService_ServiceDesc is the grpc.ServiceDesc for OrderService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCurrentPrice",
 			Handler:    _OrderService_GetCurrentPrice_Handler,
+		},
+		{
+			MethodName: "CompleteOrder",
+			Handler:    _OrderService_CompleteOrder_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

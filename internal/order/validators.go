@@ -8,6 +8,8 @@ import (
 
 func IsValidUUID(u string) bool {
 	_, err := uuid.Parse(u)
-	fmt.Printf("error in validating uuid : %v",err)
+	if err!=nil{
+		fmt.Print(err.Error())
+	}
 	return err == nil
 }

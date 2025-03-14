@@ -15,20 +15,12 @@ var db *gorm.DB
 
 var once sync.Once
 
-type SqlInterface interface {
-	Insert(order *Orders) error
-	Delete(OrderId string) error
-	GetOne(key string, value string) (*Orders, error)
-	GetAll(userId string) ([]Orders, error)
-	Update(order *Orders)error
-}
-
-type SqlServiceImplementation struct {
+type SqlServiceImplementation[T any] struct {
 	db *gorm.DB
 }
 
-func NewSqlClient() *SqlServiceImplementation {
-	return &SqlServiceImplementation{
+func NewSqlClient[T any]()*SqlServiceImplementation[T] {
+	return &SqlServiceImplementation[T]{
 		db: GetSqlClient(),
 	}
 }
@@ -54,11 +46,10 @@ func InitializeSqlClient() {
 			fmt.Println("Failed to ping DB:", err)
 			return
 		}
-
-		if err := d.AutoMigrate(&Orders{}); err != nil {
-			fmt.Println("Failed to auto-migrate:", err)
-			return
-		}
+		// if err := d.AutoMigrate(&Orders{}); err != nil {
+		// 	fmt.Println("Failed to auto-migrate:", err)
+		// 	return
+		// }
 
 		fmt.Println("DB connection successful")
 		db = d
@@ -72,34 +63,63 @@ func GetSqlClient() *gorm.DB {
 	return db
 }
 
-func (s *SqlServiceImplementation) GetOne(key string, value string) (*Orders, error) {
-	var order Orders
-	err := db.Where(fmt.Sprintf("%s = ?", value), key).First(&order).Error
+func (s *SqlServiceImplementation[T]) GetOne(filters map[string]interface{}) (*T, error) {
+	var entity T
+	query := s.db
+	for key, value := range filters {
+		query = query.Where(fmt.Sprintf("%s = ?", key), value)
+	}
+
+	if err := query.First(&entity).Error; err != nil {
+		return nil, err
+	}
+	return &entity, nil
+}
+
+// ✅ Get all records using a specific filter
+func (s *SqlServiceImplementation[T]) GetAll(filters map[string]interface{}) ([]T, error) {
+	var entities []T
+	query := s.db
+	for key, value := range filters {
+		query = query.Where(fmt.Sprintf("%s = ?", key), value)
+	}
+
+	if err := query.Find(&entities).Error; err != nil {
+		return nil, err
+	}
+	return entities, nil
+}
+
+// ✅ Update a record
+func (s *SqlServiceImplementation[T]) Update(data *T) error {
+	return s.db.Save(data).Error
+}
+
+// ✅ Get one record randomly based on a filter
+func (s *SqlServiceImplementation[T]) GetOneRandomly(filters map[string]interface{}) (*T, error) {
+	var entity T
+	query := s.db
+	for key, value := range filters {
+		query = query.Where(fmt.Sprintf("%s = ?", key), value)
+	}
+
+	err := query.Order("RAND()").Limit(1).First(&entity).Error
 	if err != nil {
 		return nil, err
 	}
-	return &order, nil
+	return &entity, nil
 }
 
-func (s *SqlServiceImplementation) GetAll(userId string) ([]Orders, error) {
-	var orders []Orders
-	if err := db.Where("user_id = ?", userId).Find(&orders).Error; err != nil {
-		return nil, err
+func (s *SqlServiceImplementation[T]) Insert(data *T) error {
+	return s.db.Create(data).Error
+}
+
+func (s *SqlServiceImplementation[T]) Delete(filters map[string]interface{}) error {
+	var entity T
+	query := s.db
+	for key, value := range filters {
+		query = query.Where(fmt.Sprintf("%s = ?", key), value)
 	}
-	return orders, nil
-}
-
-func (s *SqlServiceImplementation) Insert(order *Orders) error {
-	return db.Create(order).Error
-}
-
-func (s *SqlServiceImplementation) Delete(OrderId string) error {
-	return db.Delete(&Orders{}, "order_id = ?", OrderId).Error
-}
-
-func (s *SqlServiceImplementation)Update(order *Orders)error{
-	if err := db.Save(&order).Error; err != nil {
-		return fmt.Errorf("Failed to update order ID %d: %v\n", err)
-	}
-	return nil
+	err:=query.Delete(&entity).Error
+	return err
 }

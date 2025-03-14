@@ -12,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/tanmaygupta069/order-service-go/config"
+	"github.com/tanmaygupta069/order-service-go/internal/holding"
 	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
 	"google.golang.org/grpc/metadata"
 )
@@ -27,16 +28,20 @@ type OrderService interface {
 	IDORCheck(userid, orderId string) (bool, error)
 	GetOrderHistory(userId string) ([]*mysql.Orders, error)
 	GetTokenFromMetadata(md metadata.MD) (string, error)
-	CancelOrder(orderId string)(*mysql.Orders, error)
+	CancelOrder(orderId string) (*mysql.Orders, error)
+	CompleteRandomOrders() error
+	CompleteOrder(orderId string)(*mysql.Orders,error)
 }
 
 type OrderServiceImp struct {
 	repo OrderRepository
+	holdingService holding.HoldingService
 }
 
 func NewOrderService() OrderService {
 	return &OrderServiceImp{
 		repo: NewOrderRepository(),
+		holdingService: holding.NewHoldingService(),
 	}
 }
 
@@ -140,6 +145,40 @@ func (r *OrderServiceImp) GetTokenFromMetadata(md metadata.MD) (string, error) {
 	return token[0], nil
 }
 
-func (r *OrderServiceImp)CancelOrder(orderId string)(*mysql.Orders, error){
-	return r.repo.UpdateOrderStatus(orderId,"cancelled")
+func (r *OrderServiceImp) CancelOrder(orderId string) (*mysql.Orders, error) {
+	order, err := r.repo.GetOrder(orderId)
+	if err != nil {
+		return nil, err
+	}
+	return r.repo.UpdateOrderStatus(order, "cancelled")
+}
+
+func (r *OrderServiceImp) CompleteRandomOrders() error {
+	order, err := r.repo.GetRandomPlacedOrder()
+	if err != nil {
+		return err
+	}
+	if rand.Intn(2) == 0 {
+		fmt.Printf("Completing order %s\n", order.OrderId)
+		_, err = r.repo.UpdateOrderStatus(order, "completed")
+		if err != nil {
+			return err
+		}
+		holding:=&mysql.Holdings{
+			UserId: order.UserId,
+			Symbol: order.Symbol,
+			Quantity: order.Quantity,
+			TotalPrice: order.TotalPrice,
+		}
+		r.holdingService.UpdateHoldings(holding,order.OrderType)
+	}
+	return nil
+}
+
+func (r *OrderServiceImp)CompleteOrder(orderId string)(*mysql.Orders,error){
+	order, err := r.repo.GetOrder(orderId)
+	if err != nil {
+		return nil, err
+	}
+	return r.repo.UpdateOrderStatus(order, "completed")
 }

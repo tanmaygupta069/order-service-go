@@ -10,3 +10,10 @@ type Orders struct {
 	OrderType     string
 	OrderStatus   string
 }
+
+type Holdings struct {
+	UserId     string `gorm:"primaryKey"`
+	Symbol     string `gorm:"primaryKey"`
+	Quantity   int32
+	TotalPrice float64
+}

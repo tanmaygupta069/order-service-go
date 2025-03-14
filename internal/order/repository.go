@@ -17,17 +17,18 @@ type OrderRepository interface {
 	DeleteOrder(orderId string) error
 	GetOrder(orderId string) (*mysql.Orders, error)
 	GetOrders(userId string) ([]*mysql.Orders, error)
-	UpdateOrderStatus(orderId string,status string) (*mysql.Orders,error)
+	UpdateOrderStatus(order *mysql.Orders,status string) (*mysql.Orders,error)
+	GetRandomPlacedOrder() (*mysql.Orders, error)
 }
 
 type OrderRepositoryImp struct {
-	mysql       mysql.SqlInterface
+	mysql       *mysql.SqlServiceImplementation[mysql.Orders]
 	redisClient Redis.RedisInterface
 }
 
 func NewOrderRepository() OrderRepository {
 	return &OrderRepositoryImp{
-		mysql:       mysql.NewSqlClient(),
+		mysql:       mysql.NewSqlClient[mysql.Orders](),
 		redisClient: Redis.NewRedisClient(),
 	}
 }
@@ -63,11 +64,16 @@ func (db *OrderRepositoryImp) GetCachedStockPrice(symbol string) (string, error)
 }
 
 func (db *OrderRepositoryImp) DeleteOrder(orderId string) error {
-	return db.mysql.Delete(orderId)
+	filter:=map[string]interface{}{
+		"order_id":orderId,
+	}
+	return db.mysql.Delete(filter)
 }
 
 func (db *OrderRepositoryImp) GetOrder(orderId string) (*mysql.Orders, error) {
-	order, err := db.mysql.GetOne(orderId, "order_id")
+	order, err := db.mysql.GetOne(map[string]interface{}{
+		"order_id":orderId,
+	})
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("no record corrosponding to orderId : %s", orderId)
 	}
@@ -75,7 +81,9 @@ func (db *OrderRepositoryImp) GetOrder(orderId string) (*mysql.Orders, error) {
 }
 
 func (db *OrderRepositoryImp) GetOrders(userId string) ([]*mysql.Orders, error) {
-	orders, err := db.mysql.GetAll(userId)
+	orders, err := db.mysql.GetAll(map[string]interface{}{
+		"user_id":userId,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -88,16 +96,23 @@ func (db *OrderRepositoryImp) GetOrders(userId string) ([]*mysql.Orders, error) 
 	return result, nil
 }
 
-func (db *OrderRepositoryImp)UpdateOrderStatus(orderId string,status string) (*mysql.Orders,error){
-	order,err:=db.GetOrder(orderId)
-	if err != nil {
-		return nil, err
-	}
+func (db *OrderRepositoryImp)UpdateOrderStatus(order *mysql.Orders,status string) (*mysql.Orders,error){
 	_,ok := AllowedTransitions[order.OrderStatus][status]
 	if !ok{
 		return nil,fmt.Errorf("invalid state change from %s to %s",order.OrderStatus,status)
 	}
-	err=db.mysql.Update(order)
+	order.OrderStatus=status
+	err:=db.mysql.Update(order)
+	if err!=nil{
+		return nil,err
+	}
+	return order,nil
+}
+
+func (r *OrderRepositoryImp) GetRandomPlacedOrder() (*mysql.Orders, error) {
+    order,err:=r.mysql.GetOneRandomly(map[string]interface{}{
+		"order_status":"placed",
+	})
 	if err!=nil{
 		return nil,err
 	}
