@@ -265,6 +265,7 @@ func (s *OrderControllerImp) GetOrderHistory(ctx context.Context, req *pb.OrderH
 			PricePerStock: order.PricePerStock,
 			TotalPrice:    order.TotalPrice,
 			OrderType:     order.OrderType,
+			OrderStatus: order.OrderStatus,
 		})
 	}
 
