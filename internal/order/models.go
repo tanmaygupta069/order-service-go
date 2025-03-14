@@ -8,6 +8,7 @@ type Orders struct{
 	Quantity int32
 	TotalPrice float64
 	OrderType string
+	OrderStatus string
 }
 
 type StockResponse struct {

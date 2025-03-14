@@ -20,6 +20,7 @@ type SqlInterface interface {
 	Delete(OrderId string) error
 	GetOne(key string, value string) (*Orders, error)
 	GetAll(userId string) ([]Orders, error)
+	Update(order *Orders)error
 }
 
 type SqlServiceImplementation struct {
@@ -94,4 +95,11 @@ func (s *SqlServiceImplementation) Insert(order *Orders) error {
 
 func (s *SqlServiceImplementation) Delete(OrderId string) error {
 	return db.Delete(&Orders{}, "order_id = ?", OrderId).Error
+}
+
+func (s *SqlServiceImplementation)Update(order *Orders)error{
+	if err := db.Save(&order).Error; err != nil {
+		return fmt.Errorf("Failed to update order ID %d: %v\n", err)
+	}
+	return nil
 }

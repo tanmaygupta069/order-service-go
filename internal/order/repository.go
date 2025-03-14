@@ -17,6 +17,7 @@ type OrderRepository interface {
 	DeleteOrder(orderId string) error
 	GetOrder(orderId string) (*mysql.Orders, error)
 	GetOrders(userId string) ([]*mysql.Orders, error)
+	UpdateOrderStatus(orderId string,status string) (*mysql.Orders,error)
 }
 
 type OrderRepositoryImp struct {
@@ -40,6 +41,7 @@ func (db *OrderRepositoryImp) PlaceOrder(order *Orders) (*Orders, error) {
 		Quantity:      order.Quantity,
 		TotalPrice:    order.TotalPrice,
 		OrderType:     order.OrderType,
+		OrderStatus: order.OrderStatus,
 	})
 	if err != nil {
 		fmt.Printf("error in placing order repo")
@@ -84,4 +86,20 @@ func (db *OrderRepositoryImp) GetOrders(userId string) ([]*mysql.Orders, error) 
 	}
 
 	return result, nil
+}
+
+func (db *OrderRepositoryImp)UpdateOrderStatus(orderId string,status string) (*mysql.Orders,error){
+	order,err:=db.GetOrder(orderId)
+	if err != nil {
+		return nil, err
+	}
+	_,ok := AllowedTransitions[order.OrderStatus][status]
+	if !ok{
+		return nil,fmt.Errorf("invalid state change from %s to %s",order.OrderStatus,status)
+	}
+	err=db.mysql.Update(order)
+	if err!=nil{
+		return nil,err
+	}
+	return order,nil
 }

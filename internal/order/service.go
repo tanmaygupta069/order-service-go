@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"net/http"
 	"strconv"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tanmaygupta069/order-service-go/config"
 	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
+	"google.golang.org/grpc/metadata"
 )
 
 var cfg, _ = config.GetConfig()
@@ -22,8 +24,10 @@ type OrderService interface {
 	GenerateOrderId() string
 	ExtractUserIDFromToken(tokenString string) (string, error)
 	GetStockPrice(symbol string) (float64, error)
-	IDORCheck(userid, orderId string) bool
+	IDORCheck(userid, orderId string) (bool, error)
 	GetOrderHistory(userId string) ([]*mysql.Orders, error)
+	GetTokenFromMetadata(md metadata.MD) (string, error)
+	CancelOrder(orderId string)(*mysql.Orders, error)
 }
 
 type OrderServiceImp struct {
@@ -90,7 +94,11 @@ func (r *OrderServiceImp) GetStockPrice(symbol string) (float64, error) {
 		fmt.Println("Error unmarshalling JSON:", err)
 		return 0.00, err
 	}
-
+	if stockResp.C <= 0.00 {
+		randomFloat := 20 + rand.Float64()*(500-20)
+		randomFloat = float64(int(randomFloat*100)) / 100
+		stockResp.C = randomFloat
+	}
 	simulatedPrice := SimulatePrice(stockResp.C)
 	r.repo.CacheStockPrice(symbol, strconv.FormatFloat(simulatedPrice, 'f', 2, 64), 1)
 	simulatedPrice = math.Round(simulatedPrice*100) / 100
@@ -109,17 +117,29 @@ func (r *OrderServiceImp) DeleteOrder(orderId string) (*mysql.Orders, error) {
 	return order, nil
 }
 
-func (r *OrderServiceImp) IDORCheck(userid, orderId string) bool {
+func (r *OrderServiceImp) IDORCheck(userid, orderId string) (bool, error) {
 	order, err := r.repo.GetOrder(orderId)
 	if err != nil {
-		fmt.Errorf(err.Error())
+		return false, err
 	}
 	if userid != order.UserId {
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 func (r *OrderServiceImp) GetOrderHistory(userId string) ([]*mysql.Orders, error) {
 	return r.repo.GetOrders(userId)
+}
+
+func (r *OrderServiceImp) GetTokenFromMetadata(md metadata.MD) (string, error) {
+	token := md.Get("Authorization")
+	if len(token) == 0 {
+		return "", fmt.Errorf("no token found")
+	}
+	return token[0], nil
+}
+
+func (r *OrderServiceImp)CancelOrder(orderId string)(*mysql.Orders, error){
+	return r.repo.UpdateOrderStatus(orderId,"cancelled")
 }

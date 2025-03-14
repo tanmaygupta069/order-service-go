@@ -34,16 +34,24 @@ func (s *OrderControllerImp) PlaceOrder(ctx context.Context, req *pb.OrderReques
 	if !ok {
 		return nil, fmt.Errorf("missing metadata")
 	}
-	token := md.Get("Bearer")
-	if len(token) == 0 {
+	token, err := s.service.GetTokenFromMetadata(md)
+	if err != nil {
 		return &pb.OrderResponse{
 			Response: &pb.Response{
-				Code:    http.StatusUnauthorized,
-				Message: "token missing",
+				Code:    http.StatusInternalServerError,
+				Message: err.Error(),
 			},
 		}, nil
 	}
 
+	if req.OrderType == "" || req.Symbol == "" {
+		return &pb.OrderResponse{
+			Response: &pb.Response{
+				Code:    http.StatusBadRequest,
+				Message: "symbol,ordertype,quantity can't be empty",
+			},
+		}, nil
+	}
 	if req.Quantity <= 0 {
 		return &pb.OrderResponse{
 			Response: &pb.Response{
@@ -71,7 +79,7 @@ func (s *OrderControllerImp) PlaceOrder(ctx context.Context, req *pb.OrderReques
 		}, nil
 	}
 
-	email, err := s.service.ExtractUserIDFromToken(token[0])
+	email, err := s.service.ExtractUserIDFromToken(token)
 	if err != nil {
 		return &pb.OrderResponse{
 			Response: &pb.Response{
@@ -98,8 +106,8 @@ func (s *OrderControllerImp) PlaceOrder(ctx context.Context, req *pb.OrderReques
 		Quantity:      req.Quantity,
 		TotalPrice:    stockPrice * float64(req.Quantity),
 		OrderType:     req.OrderType,
+		OrderStatus:   "placed",
 	}
-
 	res, err := s.service.PlaceOrder(&order)
 	if err != nil {
 		return &pb.OrderResponse{
@@ -117,6 +125,7 @@ func (s *OrderControllerImp) PlaceOrder(ctx context.Context, req *pb.OrderReques
 			PricePerStock: res.PricePerStock,
 			TotalPrice:    res.TotalPrice,
 			OrderType:     res.OrderType,
+			OrderStatus:   res.OrderStatus,
 		},
 		Response: &pb.Response{
 			Code:    http.StatusCreated,
@@ -130,12 +139,21 @@ func (s *OrderControllerImp) CancelOrder(ctx context.Context, req *pb.CancelOrde
 	if !ok {
 		return nil, fmt.Errorf("missing metadata")
 	}
-	token := md.Get("Bearer")
-	if len(token) == 0 {
+	token, err := s.service.GetTokenFromMetadata(md)
+	if err != nil {
 		return &pb.CancelOrderResponse{
 			Response: &pb.Response{
-				Code:    http.StatusUnauthorized,
-				Message: "token missing",
+				Code:    http.StatusInternalServerError,
+				Message: err.Error(),
+			},
+		}, nil
+	}
+
+	if req.OrderId == "" {
+		return &pb.CancelOrderResponse{
+			Response: &pb.Response{
+				Code:    http.StatusBadRequest,
+				Message: "orderId can't be empty",
 			},
 		}, nil
 	}
@@ -148,7 +166,7 @@ func (s *OrderControllerImp) CancelOrder(ctx context.Context, req *pb.CancelOrde
 			},
 		}, nil
 	}
-	email, err := s.service.ExtractUserIDFromToken(token[0])
+	email, err := s.service.ExtractUserIDFromToken(token)
 	if err != nil {
 		return &pb.CancelOrderResponse{
 			Response: &pb.Response{
@@ -158,16 +176,24 @@ func (s *OrderControllerImp) CancelOrder(ctx context.Context, req *pb.CancelOrde
 		}, nil
 	}
 
-	if !s.service.IDORCheck(email, req.OrderId) {
+	valid, err := s.service.IDORCheck(email, req.OrderId)
+	if valid == false && err == nil {
 		return &pb.CancelOrderResponse{
 			Response: &pb.Response{
-				Code:    http.StatusInternalServerError,
+				Code:    http.StatusUnauthorized,
 				Message: "can't cancel order which is not yours",
+			},
+		}, nil
+	} else if err != nil {
+		return &pb.CancelOrderResponse{
+			Response: &pb.Response{
+				Code:    http.StatusNotFound,
+				Message: "you have no such order",
 			},
 		}, nil
 	}
 
-	order, err := s.service.DeleteOrder(req.OrderId)
+	order, err := s.service.CancelOrder(req.OrderId)
 	if err != nil {
 		return &pb.CancelOrderResponse{
 			Response: &pb.Response{
@@ -185,6 +211,7 @@ func (s *OrderControllerImp) CancelOrder(ctx context.Context, req *pb.CancelOrde
 			PricePerStock: order.PricePerStock,
 			TotalPrice:    order.TotalPrice,
 			OrderType:     order.OrderType,
+			OrderStatus: order.OrderStatus,
 		},
 		Response: &pb.Response{
 			Code:    http.StatusOK,
@@ -198,17 +225,18 @@ func (s *OrderControllerImp) GetOrderHistory(ctx context.Context, req *pb.OrderH
 	if !ok {
 		return nil, fmt.Errorf("missing metadata")
 	}
-	token := md.Get("Bearer")
-	if len(token) == 0 {
+
+	token, err := s.service.GetTokenFromMetadata(md)
+	if err != nil {
 		return &pb.OrderHistoryResponse{
 			Response: &pb.Response{
-				Code:    http.StatusUnauthorized,
-				Message: "token missing",
+				Code:    http.StatusInternalServerError,
+				Message: err.Error(),
 			},
 		}, nil
 	}
 
-	email, err := s.service.ExtractUserIDFromToken(token[0])
+	email, err := s.service.ExtractUserIDFromToken(token)
 	if err != nil {
 		return &pb.OrderHistoryResponse{
 			Response: &pb.Response{
@@ -250,6 +278,15 @@ func (s *OrderControllerImp) GetOrderHistory(ctx context.Context, req *pb.OrderH
 }
 
 func (s *OrderControllerImp) GetCurrentPrice(ctx context.Context, req *pb.GetCurrentPriceRequest) (*pb.GetCurrentPriceResponse, error) {
+
+	if req.Symbol == "" {
+		return &pb.GetCurrentPriceResponse{
+			Response: &pb.Response{
+				Code:    http.StatusBadRequest,
+				Message: "symbol can't be empty",
+			},
+		}, nil
+	}
 	if len(req.Symbol) <= 0 {
 		return &pb.GetCurrentPriceResponse{
 			Response: &pb.Response{
@@ -258,7 +295,6 @@ func (s *OrderControllerImp) GetCurrentPrice(ctx context.Context, req *pb.GetCur
 			},
 		}, nil
 	}
-
 	price, err := s.service.GetStockPrice(req.Symbol)
 	if err != nil {
 		return &pb.GetCurrentPriceResponse{

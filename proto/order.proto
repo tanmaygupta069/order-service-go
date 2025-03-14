@@ -18,6 +18,7 @@ message Order {
     double pricePerStock = 4;
     double totalPrice = 5;
     string orderType = 6;
+    string orderStatus = 7;
 }
 
 message OrderRequest{
