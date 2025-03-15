@@ -7,7 +7,7 @@ import (
 
 	holdingPb "github.com/tanmaygupta069/order-service-go/generated/holding"
 	common "github.com/tanmaygupta069/order-service-go/generated/common"
-	"github.com/tanmaygupta069/order-service-go/pkg/auth"
+	"github.com/tanmaygupta069/order-service-go/internal/pkg/auth"
 	"google.golang.org/grpc/metadata"
 )
 

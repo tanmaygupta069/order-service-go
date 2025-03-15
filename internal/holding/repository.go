@@ -3,8 +3,8 @@ package holding
 import (
 	"errors"
 
-	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
-	Redis "github.com/tanmaygupta069/order-service-go/pkg/redis"
+	"github.com/tanmaygupta069/order-service-go/internal/pkg/mysql"
+	Redis "github.com/tanmaygupta069/order-service-go/internal/pkg/redis"
 	"gorm.io/gorm"
 )
 

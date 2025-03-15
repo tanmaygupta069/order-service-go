@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
-	Redis "github.com/tanmaygupta069/order-service-go/pkg/redis"
+	"github.com/tanmaygupta069/order-service-go/internal/pkg/mysql"
+	Redis "github.com/tanmaygupta069/order-service-go/internal/pkg/redis"
 	"gorm.io/gorm"
 	// "gorm.io/gorm"
 )
@@ -97,8 +97,8 @@ func (db *OrderRepositoryImp) GetOrders(userId string) ([]*mysql.Orders, error) 
 }
 
 func (db *OrderRepositoryImp)UpdateOrderStatus(order *mysql.Orders,status string) (*mysql.Orders,error){
-	_,ok := AllowedTransitions[order.OrderStatus][status]
-	if !ok{
+	valid,_ := AllowedTransitions[order.OrderStatus][status]
+	if !valid{
 		return nil,fmt.Errorf("invalid state change from %s to %s",order.OrderStatus,status)
 	}
 	order.OrderStatus=status

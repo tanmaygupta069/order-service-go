@@ -2,7 +2,7 @@ package holding
 
 import (
 	"fmt"
-	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
+	"github.com/tanmaygupta069/order-service-go/internal/pkg/mysql"
 	"google.golang.org/grpc/metadata"
 )
 

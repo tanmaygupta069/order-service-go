@@ -8,7 +8,7 @@ import (
 
 	OrderPb "github.com/tanmaygupta069/order-service-go/generated/order"
 	common "github.com/tanmaygupta069/order-service-go/generated/common"
-	"github.com/tanmaygupta069/order-service-go/pkg/auth"
+	"github.com/tanmaygupta069/order-service-go/internal/pkg/auth"
 	"google.golang.org/grpc/metadata"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tanmaygupta069/order-service-go/config"
 	"github.com/tanmaygupta069/order-service-go/internal/holding"
-	"github.com/tanmaygupta069/order-service-go/pkg/mysql"
+	"github.com/tanmaygupta069/order-service-go/internal/pkg/mysql"
 )
 
 var cfg, _ = config.GetConfig()

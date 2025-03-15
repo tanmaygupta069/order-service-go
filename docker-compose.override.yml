@@ -1,0 +1,6 @@
+version: '3.8'
+services:
+  order-service:
+    environment:
+      MYSQL_HOST: "order-mysql"
+      REDIS_HOST: "order-redis"
